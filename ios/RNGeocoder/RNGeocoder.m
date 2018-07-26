@@ -22,6 +22,28 @@
 
 RCT_EXPORT_MODULE();
 
+- (void)completerDidUpdateResults:(MKLocalSearchCompleter *)completer
+{
+    if (self.completeResolve) {
+        self.completeResolve([self searchCompletionsForDictionary:completer.results]);
+        self.completeReject = NULL;
+        self.completeResolve = NULL;
+    }
+    
+    self.completer = nil;
+}
+
+- (void)completer:(MKLocalSearchCompleter *)completer didFailWithError:(NSError *)error
+{
+    if (self.completeReject) {
+        self.completeReject(@"Error", @"Completer failed", error);
+        self.completeReject = NULL;
+        self.completeResolve = NULL;
+    }
+    
+    self.completer = nil;
+}
+
 RCT_EXPORT_METHOD(geocodePosition:(CLLocation *)location
                   resolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
@@ -75,6 +97,23 @@ RCT_EXPORT_METHOD(geocodeAddress:(NSString *)address
   }];
 }
 
+RCT_EXPORT_METHOD(geocodeAutoComplete:(NSString *)queryFragment
+                  resolver:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
+{
+    dispatch_sync(dispatch_get_main_queue(), ^{
+        if (!self.completer) {
+            self.completer = [[MKLocalSearchCompleter alloc] init];
+            self.completer.delegate = (id)self;
+            self.completer.filterType = MKSearchCompletionFilterTypeLocationsOnly;
+        }
+
+        self.completeReject = reject;
+        self.completeResolve = resolve;
+        self.completer.queryFragment = queryFragment;
+    });
+}
+
 - (NSArray *)placemarksToDictionary:(NSArray *)placemarks {
 
   NSMutableArray *results = [[NSMutableArray alloc] init];
@@ -116,7 +155,21 @@ RCT_EXPORT_METHOD(geocodeAddress:(NSString *)address
   }
 
   return results;
-
 }
 
+- (NSArray *)searchCompletionsForDictionary:(NSArray *)completions {
+    NSMutableArray *results = [[NSMutableArray alloc] init];
+    
+    for (int i = 0; i < completions.count; i++) {
+        MKLocalSearchCompletion* completion = [completions objectAtIndex:i];
+        
+        NSDictionary *result = @{@"title": completion.title.length ? completion.title : [NSNull null],
+                                 @"subTitle": completion.subtitle.length ? completion.subtitle : [NSNull null]
+                                 };
+        
+        [results addObject:result];
+    }
+    
+    return results;
+}
 @end

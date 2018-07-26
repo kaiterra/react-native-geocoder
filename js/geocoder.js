@@ -31,4 +31,11 @@ export default {
       return GoogleApi.geocodeAddress(this.apiKey, address);
     });
   },
+
+  geocodeAutoComplete(queryFragment) {
+    if (!queryFragment) {
+      return Promise.reject(new Error("queryFragment param is null"));
+    }
+    return RNGeocoder.geocodeAutoComplete(queryFragment);
+  }
 }
