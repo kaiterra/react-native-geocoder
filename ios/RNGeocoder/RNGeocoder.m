@@ -30,6 +30,7 @@ RCT_EXPORT_MODULE();
         self.completeResolve = NULL;
     }
     
+    self.completer.delegate = nil;
     self.completer = nil;
 }
 
@@ -41,6 +42,7 @@ RCT_EXPORT_MODULE();
         self.completeResolve = NULL;
     }
     
+    self.completer.delegate = nil;
     self.completer = nil;
 }
 
@@ -83,6 +85,26 @@ RCT_EXPORT_METHOD(geocodeAddress:(NSString *)address
       [self.geocoder cancelGeocode];
     }
 
+    if (self.localSearch) {
+        [self.localSearch cancel];
+        self.localSearch = nil;
+    }
+    MKLocalSearchRequest *request = [[MKLocalSearchRequest alloc] init];
+    request.naturalLanguageQuery = address;
+    self.localSearch = [[MKLocalSearch alloc] initWithRequest:request];
+    [self.localSearch startWithCompletionHandler:^(MKLocalSearchResponse * _Nullable response, NSError * _Nullable error) {
+        if (!error) {
+            if (response.mapItems.count) {
+                return resolve([self placemarksToDictionary:@[response.mapItems[0].placemark]]);
+            } else {
+                return reject(@"NOT_FOUND", @"geocodeAddress failed", error);
+            }
+        } else {
+            return reject(@"ERROR", @"geocodeAddress failed", error);
+        }
+    }];
+
+    /*
     [self.geocoder geocodeAddressString:address completionHandler:^(NSArray *placemarks, NSError *error) {
 
         if (error) {
@@ -95,6 +117,18 @@ RCT_EXPORT_METHOD(geocodeAddress:(NSString *)address
 
         resolve([self placemarksToDictionary:placemarks]);
   }];
+     */
+}
+
+RCT_EXPORT_METHOD(cancelAutoComplete)
+{
+    if (self.completer) {
+        self.completeReject = NULL;
+        self.completeResolve = NULL;
+        [self.completer cancel];
+        self.completer.delegate = nil;
+        self.completer = nil;
+    }
 }
 
 RCT_EXPORT_METHOD(geocodeAutoComplete:(NSString *)queryFragment
@@ -102,12 +136,16 @@ RCT_EXPORT_METHOD(geocodeAutoComplete:(NSString *)queryFragment
                   rejecter:(RCTPromiseRejectBlock)reject)
 {
     dispatch_sync(dispatch_get_main_queue(), ^{
-        if (!self.completer) {
-            self.completer = [[MKLocalSearchCompleter alloc] init];
-            self.completer.delegate = (id)self;
-            self.completer.filterType = MKSearchCompletionFilterTypeLocationsOnly;
+        if (self.completer) {
+            self.completeReject = NULL;
+            self.completeResolve = NULL;
+            [self.completer cancel];
+            self.completer.delegate = nil;
+            self.completer = nil;
         }
-
+        self.completer = [[MKLocalSearchCompleter alloc] init];
+        self.completer.delegate = (id)self;
+        self.completer.filterType = MKSearchCompletionFilterTypeLocationsOnly;
         self.completeReject = reject;
         self.completeResolve = resolve;
         self.completer.queryFragment = queryFragment;
@@ -121,7 +159,7 @@ RCT_EXPORT_METHOD(geocodeAutoComplete:(NSString *)queryFragment
   for (int i = 0; i < placemarks.count; i++) {
     CLPlacemark* placemark = [placemarks objectAtIndex:i];
 
-    NSString* name = [NSNull null];
+    id name = [NSNull null];
 
     if (![placemark.name isEqualToString:placemark.locality] &&
         ![placemark.name isEqualToString:placemark.thoroughfare] &&

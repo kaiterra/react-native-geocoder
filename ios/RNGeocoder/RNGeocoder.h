@@ -10,6 +10,7 @@
 
 @interface RNGeocoder : NSObject<RCTBridgeModule>
 @property (nonatomic, strong) CLGeocoder *geocoder;
+@property (nonatomic, strong) MKLocalSearch *localSearch;
 @property (nonatomic, copy) RCTPromiseResolveBlock completeResolve;
 @property (nonatomic, copy) RCTPromiseRejectBlock completeReject;
 @property (nonatomic, strong) MKLocalSearchCompleter *completer;

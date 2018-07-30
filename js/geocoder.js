@@ -37,5 +37,9 @@ export default {
       return Promise.reject(new Error("queryFragment param is null"));
     }
     return RNGeocoder.geocodeAutoComplete(queryFragment);
+  },
+
+  cancelAutoComplete() {
+    return RNGeocoder.cancelAutoComplete();
   }
 }
