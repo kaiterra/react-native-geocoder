@@ -15,13 +15,21 @@ import com.facebook.react.bridge.WritableNativeMap;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
+
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GoogleApiAvailability;
+import android.content.Context;
 
 public class RNGeocoderModule extends ReactContextBaseJavaModule {
+    private ReactApplicationContext reactContext;
 
     private Geocoder geocoder;
 
     public RNGeocoderModule(ReactApplicationContext reactContext) {
         super(reactContext);
+        this.reactContext = reactContext;
+
         geocoder = new Geocoder(reactContext.getApplicationContext());
     }
 
@@ -37,13 +45,43 @@ public class RNGeocoderModule extends ReactContextBaseJavaModule {
           return;
         }
 
-        try {
-            List<Address> addresses = geocoder.getFromLocationName(addressName, 20);
-            promise.resolve(transform(addresses));
+        int result = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(reactContext.getApplicationContext().getApplicationContext());
+        if (result == ConnectionResult.SUCCESS) {
+            try {
+                List<Address> addresses = geocoder.getFromLocationName(addressName, 10);
+                if (addresses.size() > 0) {
+                    promise.resolve(transform(addresses));
+                } else {
+                    promise.reject("Cannot geocode address using native geocoder","Fallback to AMap or Google");
+                }
+            }
+            catch (IOException e) {
+                promise.reject(e);
+            }    
+        } else {
+            promise.reject("Google Play Service unavailable", "Fallback to AMap or Google");
+        }
+    }
+
+    @ReactMethod
+    public void geocodeAutoComplete(String addressName, Promise promise) {
+        if (!geocoder.isPresent()) {
+            promise.reject("NOT_AVAILABLE", "Geocoder not available for this platform");
+            return;
         }
 
-        catch (IOException e) {
-            promise.reject(e);
+        int result = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(reactContext.getApplicationContext().getApplicationContext());
+        if (result == ConnectionResult.SUCCESS) {
+            try {
+                List<Address> addresses = geocoder.getFromLocationName(addressName, 10);
+                Log.v("ReactNative",addresses.toString());
+                promise.resolve(transformAutoComplete(addresses));
+            }
+            catch (IOException e) {
+                promise.reject(e);
+            }    
+        } else {
+            promise.reject("Google Play Service unavailable", "Fallback to AMap or Google");
         }
     }
 
@@ -63,6 +101,50 @@ public class RNGeocoderModule extends ReactContextBaseJavaModule {
         }
     }
 
+    @ReactMethod
+    public void cancelAutoComplete() {
+    }
+
+    WritableArray transformAutoComplete(List<Address> addresses) {
+        WritableArray results = new WritableNativeArray();
+
+        for (Address address: addresses) {
+            WritableMap result = new WritableNativeMap();
+
+            if (address.getFeatureName() != null) {
+                result.putString("title",address.getFeatureName());
+            } else if (address.getLocality() != null) {
+                result.putString("title",address.getLocality());
+            } else if (address.getAdminArea() != null) {
+                result.putString("title",address.getAdminArea());
+            } else if (address.getSubLocality() != null) {
+                result.putString("title",address.getSubLocality());
+            } else if (address.getSubAdminArea() != null) {
+                result.putString("title",address.getSubAdminArea());
+            } else  if (address.getThoroughfare() != null) {
+                result.putString("title",address.getThoroughfare());
+            } else {
+                // Cannot extract useful geo data for places auto completion.
+                continue;
+            }
+
+            StringBuilder sb = new StringBuilder();
+
+            for (int i = 0; i <= address.getMaxAddressLineIndex(); i++) {
+                if (i > 0) {
+                    sb.append(", ");
+                }
+                sb.append(address.getAddressLine(i));
+            }
+
+            result.putString("subTitle",sb.toString());
+
+            results.pushMap(result);
+        }
+
+        return results;
+    }
+    
     WritableArray transform(List<Address> addresses) {
         WritableArray results = new WritableNativeArray();
 

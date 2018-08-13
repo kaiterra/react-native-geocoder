@@ -1,13 +1,19 @@
 import { NativeModules } from 'react-native';
 import GoogleApi from './googleApi.js';
+import AmapApi from './amapApi.js'
 
 const { RNGeocoder } = NativeModules;
 
 export default {
-  apiKey: null,
+  googleApiKey: null,
+  amapApiKey: null,
 
   fallbackToGoogle(key) {
-    this.apiKey = key;
+    this.googleApiKey = key;
+  },
+  
+  fallbackToAmap(key) {
+    this.amapApiKey = key;
   },
 
   geocodePosition(position) {
@@ -16,8 +22,8 @@ export default {
     }
 
     return RNGeocoder.geocodePosition(position).catch(err => {
-      if (!this.apiKey) { throw err; }
-      return GoogleApi.geocodePosition(this.apiKey, position);
+      if (!this.googleApiKey) { throw err; }
+      return GoogleApi.geocodePosition(this.googleApiKey, position);
     });
   },
 
@@ -27,8 +33,13 @@ export default {
     }
 
     return RNGeocoder.geocodeAddress(address).catch(err => {
-      if (!this.apiKey) { throw err; }
-      return GoogleApi.geocodeAddress(this.apiKey, address);
+      if (this.googleApiKey) {
+        return GoogleApi.geocodeAddress(this.googleApiKey, address);
+      } else if (this.amapApiKey) {
+        return AmapApi.geocodeAddress(this.amapApiKey, address);
+      } else { 
+        throw err; 
+      }
     });
   },
 
@@ -36,7 +47,15 @@ export default {
     if (!queryFragment) {
       return Promise.reject(new Error("queryFragment param is null"));
     }
-    return RNGeocoder.geocodeAutoComplete(queryFragment);
+    return RNGeocoder.geocodeAutoComplete(queryFragment).catch(err => {
+      if (this.googleApiKey) {
+        return GoogleApi.geocodeAutoComplete(this.googleApiKey, queryFragment);
+      } else if (this.amapApiKey) {
+        return AmapApi.geocodeAutoComplete(this.amapApiKey, queryFragment);
+      } else {
+        throw err;
+      }
+    });
   },
 
   cancelAutoComplete() {
