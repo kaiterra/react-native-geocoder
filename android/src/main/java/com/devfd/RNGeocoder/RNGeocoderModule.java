@@ -74,7 +74,6 @@ public class RNGeocoderModule extends ReactContextBaseJavaModule {
         if (result == ConnectionResult.SUCCESS) {
             try {
                 List<Address> addresses = geocoder.getFromLocationName(addressName, 10);
-                Log.v("ReactNative",addresses.toString());
                 promise.resolve(transformAutoComplete(addresses));
             }
             catch (IOException e) {
