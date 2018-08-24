@@ -22,8 +22,13 @@ export default {
     }
 
     return RNGeocoder.geocodePosition(position).catch(err => {
-      if (!this.googleApiKey) { throw err; }
-      return GoogleApi.geocodePosition(this.googleApiKey, position);
+      if (this.googleApiKey) {
+        return GoogleApi.geocodePosition(this.googleApiKey, position);
+      } else if (this.amapApiKey) {
+        return AmapApi.geocodePosition(this.amapApiKey, position);
+      } else {
+        throw err;
+      }
     });
   },
 

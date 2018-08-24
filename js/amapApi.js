@@ -1,14 +1,15 @@
 const amapAutoCompleteURL = 'https://restapi.amap.com/v3/assistant/inputtips';
 const amapGeocodeURl = 'https://restapi.amap.com/v3/geocode/geo';
+const amapReverseGeocodingURL = 'https://restapi.amap.com/v3/geocode/regeo'
 
 export default {
-  // geocodePosition(apiKey, position) {
-  //   if (!apiKey || !position || !position.lat || !position.lng) {
-  //     return Promise.reject(new Error("invalid apiKey / position"));
-  //   }
+  geocodePosition(apiKey, position) {
+    if (!apiKey || !position || !position.lat || !position.lng) {
+      return Promise.reject(new Error("invalid apiKey / position"));
+    }
 
-  //   return this.geocodeRequest(`${amapAutoCompleteURL}?key=${apiKey}&latlng=${position.lat},${position.lng}`);
-  // },
+    return this.regeocodeRequest(`${amapReverseGeocodingURL}?key=${apiKey}&location=${position.lng},${position.lat}`, position);
+  },
 
   geocodeAddress(apiKey, address) {
     if (!apiKey || !address) {
@@ -23,11 +24,8 @@ export default {
     if (!apiKey || !query) {
       return Promise.reject(new Error("invalid apiKey / address"));
     }
-    // if (!coordinate) {
-      return this.autoCompleteRequest(`${amapAutoCompleteURL}?key=${apiKey}&keywords=${encodeURI(query)}&type=190100|190103|190104|190105&datatype=poi`);
-    // } else {
-      // return this.autoCompleteRequest(`${amapAutoCompleteURL}?key=${apiKey}&keywords=${encodeURI(query)}&type=190100|190103|190104|190105&location=${coordinate.lng},${coordinate.lat}&datatype=poi`);
-    // }
+    
+    return this.autoCompleteRequest(`${amapAutoCompleteURL}?key=${apiKey}&keywords=${encodeURI(query)}&type=190100|190103|190104|190105&datatype=poi`);
   },
 
   async autoCompleteRequest(url) {
@@ -71,5 +69,31 @@ export default {
       return newGeocode;
     })
     return geocodes;
+  },
+
+  async regeocodeRequest(url, position) {
+    console.log(url)
+
+    const res = await fetch(url);
+    const json = await res.json();
+
+    if (!json.regeocode || json.info !== 'OK') {
+      return Promise.reject(new Error(`geocoding error ${json.status}, ${json.info}`));
+    }
+
+    const regeocode = json.regeocode;
+    const addressComponent = regeocode.addressComponent;
+    const addresses = [{
+      formattedAddress : regeocode.formatted_address ? regeocode.formatted_address : null,
+      position : {lng: position.lng, lat: position.lat },
+      feature : null,
+      locality : addressComponent.city.length ? addressComponent.city : null,
+      country : addressComponent.country.length ? addressComponent.country.length : null,
+      countryCode : null,
+      adminArea : addressComponent.province.length ? addressComponent.province : null,
+      subAdminArea : null,
+      subLocality : addressComponent.district.length ? addressComponent.district : null
+    }]
+    return addresses;
   }
 }
