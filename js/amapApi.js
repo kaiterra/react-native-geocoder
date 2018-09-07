@@ -2,30 +2,46 @@ const amapAutoCompleteURL = 'https://restapi.amap.com/v3/assistant/inputtips';
 const amapGeocodeURl = 'https://restapi.amap.com/v3/geocode/geo';
 const amapReverseGeocodingURL = 'https://restapi.amap.com/v3/geocode/regeo'
 
+function mappedAmapLanguage(lang) {
+  switch(lang) {
+    case 'en-US':
+      return 'en'
+    case 'zh-CN':
+    case 'zh-TW':
+    default:
+      return 'cn'
+  }
+}
 export default {
-  geocodePosition(apiKey, position) {
+  geocodePosition(apiKey, position, lang) {
+    lang = mappedAmapLanguage(lang)
+    
     if (!apiKey || !position || !position.lat || !position.lng) {
       return Promise.reject(new Error("invalid apiKey / position"));
     }
 
-    return this.regeocodeRequest(`${amapReverseGeocodingURL}?key=${apiKey}&location=${position.lng},${position.lat}`, position);
+    return this.regeocodeRequest(`${amapReverseGeocodingURL}?key=${apiKey}&location=${position.lng},${position.lat}&language=${lang}`, position);
   },
 
-  geocodeAddress(apiKey, address) {
+  geocodeAddress(apiKey, address, lang) {
+    lang = mappedAmapLanguage(lang)
+
     if (!apiKey || !address) {
       return Promise.reject(new Error("invalid apiKey / address"));
     }
 
-    return this.geocodeRequest(`${amapGeocodeURl}?key=${apiKey}&address=${encodeURI(address)}`);
+    return this.geocodeRequest(`${amapGeocodeURl}?key=${apiKey}&address=${encodeURI(address)}&language=${lang}`);
   },
 
   // Amap API, see doc from https://lbs.amap.com/api/webservice/guide/api/inputtips
-  geocodeAutoComplete(apiKey, query) {
+  geocodeAutoComplete(apiKey, query, lang) {
+    lang = mappedAmapLanguage(lang)
+
     if (!apiKey || !query) {
       return Promise.reject(new Error("invalid apiKey / address"));
     }
     
-    return this.autoCompleteRequest(`${amapAutoCompleteURL}?key=${apiKey}&keywords=${encodeURI(query)}&type=190100|190103|190104|190105&datatype=poi`);
+    return this.autoCompleteRequest(`${amapAutoCompleteURL}?key=${apiKey}&keywords=${encodeURI(query)}&type=190100|190103|190104|190105&datatype=poi&language=${lang}`);
   },
 
   async autoCompleteRequest(url) {

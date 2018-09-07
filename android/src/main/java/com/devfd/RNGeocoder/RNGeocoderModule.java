@@ -230,8 +230,13 @@ public class RNGeocoderModule extends ReactContextBaseJavaModule {
             return;
         }
 
-        ReverseGeocodingThread rGeocodingThread = new ReverseGeocodingThread(geocoder, position, promise);
-        rGeocodingThread.start();
+        int result = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(reactContext.getApplicationContext().getApplicationContext());
+        if (result == ConnectionResult.SUCCESS) {
+            ReverseGeocodingThread rGeocodingThread = new ReverseGeocodingThread(geocoder, position, promise);
+            rGeocodingThread.start();
+        } else {
+            promise.reject("Google Play Service unavailable", "Fallback to AMap or Google");
+        }
     }
 
     @ReactMethod

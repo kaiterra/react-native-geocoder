@@ -16,7 +16,7 @@ export default {
     this.amapApiKey = key;
   },
 
-  geocodePosition(position) {
+  geocodePosition(position, lang) {
     if (!position || !position.lat || !position.lng) {
       return Promise.reject(new Error("invalid position: {lat, lng} required"));
     }
@@ -25,14 +25,14 @@ export default {
       if (this.googleApiKey) {
         return GoogleApi.geocodePosition(this.googleApiKey, position);
       } else if (this.amapApiKey) {
-        return AmapApi.geocodePosition(this.amapApiKey, position);
+        return AmapApi.geocodePosition(this.amapApiKey, position, lang);
       } else {
         throw err;
       }
     });
   },
 
-  geocodeAddress(address) {
+  geocodeAddress(address, lang) {
     if (!address) {
       return Promise.reject(new Error("address is null"));
     }
@@ -41,14 +41,14 @@ export default {
       if (this.googleApiKey) {
         return GoogleApi.geocodeAddress(this.googleApiKey, address);
       } else if (this.amapApiKey) {
-        return AmapApi.geocodeAddress(this.amapApiKey, address);
+        return AmapApi.geocodeAddress(this.amapApiKey, address, lang);
       } else { 
         throw err; 
       }
     });
   },
 
-  geocodeAutoComplete(queryFragment) {
+  geocodeAutoComplete(queryFragment, lang) {
     if (!queryFragment) {
       return Promise.reject(new Error("queryFragment param is null"));
     }
@@ -56,7 +56,7 @@ export default {
       if (this.googleApiKey) {
         return GoogleApi.geocodeAutoComplete(this.googleApiKey, queryFragment);
       } else if (this.amapApiKey) {
-        return AmapApi.geocodeAutoComplete(this.amapApiKey, queryFragment);
+        return AmapApi.geocodeAutoComplete(this.amapApiKey, queryFragment, lang);
       } else {
         throw err;
       }
